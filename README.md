@@ -1,1 +1,0 @@
-# three.js-game-psychics
