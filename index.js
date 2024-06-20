@@ -1,5 +1,4 @@
 //Create three.js scene, camera, and renderer
-//Create three.js scene, camera, and renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -7,11 +6,9 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-scene.background = new THREE.Color("rgb(25,25,25)");
-scene.fog = new THREE.Fog(0x222222, 0, 10);
-
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
+
 //mouse lock
 let isSupport = "pointerLockElement" in document;
 let element = renderer.domElement;
@@ -25,7 +22,6 @@ document.body.appendChild(renderer.domElement);
 
 //create cannon.js world
 const world = new CANNON.World();
-world.gravity.set(0, -20, 0);
 
 const clock = new THREE.Clock();
 const tuniform = {
@@ -40,33 +36,6 @@ let upAxis = new CANNON.Vec3(0, 1, 0);
 let bodyTemp, canJump;
 let keys = [];
 let mouse = {};
-
-/**********************/
-//lighting
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(0, 32, 64);
-scene.add(directionalLight);
-
-// ground body
-const groundBody = new CANNON.Body({
-  type: CANNON.Body.STATIC,
-  shape: new CANNON.Plane(),
-});
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
-world.addBody(groundBody);
-
-// plane mesh
-const PlaneGeometry = new THREE.PlaneGeometry(1000, 1000);
-const planeMaterial = new THREE.ShaderMaterial({
-  uniforms: tuniform,
-  vertexShader: vs,
-  fragmentShader: fs,
-});
-const planeMesh = new THREE.Mesh(PlaneGeometry, planeMaterial);
-
-planeMesh.position.copy(groundBody.position);
-planeMesh.quaternion.copy(groundBody.quaternion);
-scene.add(planeMesh);
 
 /**********************/
 
@@ -123,17 +92,15 @@ class Box {
     rotateCannon(this.cannonBody, "z", this.r[2]);
     world.addBody(this.cannonBody);
 
-
     this.loader = new THREE.TextureLoader();
     this.threejsGeo = new THREE.BoxGeometry(this.w, this.h, this.l);
     this.material = new THREE.MeshPhongMaterial({
-        //color: this.color,
-        map: this.loader.load('https://art.pixilart.com/8958a2c64b6def8.png'),
-  
-        depthWrite: true,
-      });
-    this.threejsMesh = new THREE.Mesh(this.threejsGeo, this.material);
+      //color: this.color,
+      map: this.loader.load("https://art.pixilart.com/8958a2c64b6def8.png"),
 
+      depthWrite: true,
+    });
+    this.threejsMesh = new THREE.Mesh(this.threejsGeo, this.material);
 
     scene.add(this.threejsMesh);
 
@@ -148,6 +115,35 @@ class Box {
     );
     scene.add(this.wireframe);
   }
+  // draw() {
+  //     //hitbox
+  //     this.cannonBody = new CANNON.Body({
+  //       mass: this.m,
+  //       shape: new CANNON.Box(new CANNON.Vec3(this.w/2,this.h/2,this.l/2))
+  //     });
+  //     this.cannonBody.position.set(this.x,this.y,this.z);
+  //     rotateCannon(this.cannonBody,'x',this.r[0])
+  //     rotateCannon(this.cannonBody,'y',this.r[1])
+  //     rotateCannon(this.cannonBody,'z',this.r[2])
+  //     world.addBody(this.cannonBody);
+
+  //     //box
+  //     this.threejsGeo = new THREE.BoxGeometry(this.w,this.h,this.l);
+  //     this.material = new THREE.MeshPhongMaterial({
+  //       //color: this.color,
+  //       map: this.loader.load("https://art.pixilart.com/8958a2c64b6def8.png"),
+
+  //       depthWrite: true,
+  //     });  
+  //     this.threejsMesh = new THREE.Mesh(this.threejsGeo, this.material);
+  //     scene.add(this.threejsMesh)
+
+  //     //frame
+  //     this.wireframeGeo = new THREE.EdgesGeometry( this.threejsGeo );
+  //     this.wireframeMat = new THREE.LineBasicMaterial( { color:  new THREE.Color("rgb(0,200,0)"), linewidth: 4 } );
+  //     this.wireframe = new THREE.LineSegments( this.wireframeGeo, this.wireframeMat );
+  //     scene.add(this.wireframe)
+  // }
 
   update() {
     this.threejsMesh.position.copy(this.cannonBody.position);
@@ -263,23 +259,104 @@ class Player {
   }
 }
 
-/**********************/
-
-let box = new Box(0, 0, -10, 8, 8, 8, [90, 0, 0], 0);
-//box.draw()
-box.update();
-
-//make camera follow the player
-let player = new Player();
-player.body.position.set(0, 40, 0);
-player.pitchObject.add(camera);
-camera.position.set(0, 1, 5);
-
 class Program {
-  constructor() {}
-  setup() {}
+  constructor() {
+    this.boxes = [];
+    this.player = new Player();
+
+    this.groundBody = new CANNON.Body({
+      type: CANNON.Body.STATIC,
+      shape: new CANNON.Plane(),
+    });
+
+    this.PlaneGeometry = new THREE.PlaneGeometry(1000, 1000);
+    this.planeMaterial = new THREE.ShaderMaterial({
+      uniforms: tuniform,
+      vertexShader: vs,
+      fragmentShader: fs,
+    });
+    this.planeMesh = new THREE.Mesh(this.PlaneGeometry, this.planeMaterial);
+
+    this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  }
+  setup() {
+    scene.background = new THREE.Color("rgb(25,25,25)");
+    scene.fog = new THREE.Fog(0x222222, 0, 40);
+    camera.position.set(0, 1, 5);
+    world.gravity.set(0, -20, 0);
+
+    //lighting
+    this.directionalLight.position.set(0, 32, 64);
+    scene.add(this.directionalLight);
+
+    // ground
+    this.groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
+    world.addBody(this.groundBody);
+
+    this.planeMesh.position.copy(this.groundBody.position);
+    this.planeMesh.quaternion.copy(this.groundBody.quaternion);
+    scene.add(this.planeMesh);
+
+    this.player.body.position.set(0, 10, 0);
+    this.player.pitchObject.add(camera);
+
+    //test collisions
+    this.boxes.push(new Box(0, 30, -10, 8, 8, 8, [90, 40, 0], 0.4));
+    this.boxes.push(new Box(0, 40, -10, 8, 8, 2, [50, 10, 0], 0.4));
+
+    //floating block
+    this.boxes.push(new Box(15, 5, -10, 8, 8, 1, [90, 0, 0], 0));
+    this.listeners();
+  }
+  listeners() {
+    let e = new Event(document);
+    e.keyPress(keys);
+    e.getMouse(mouse);
+
+    e.listener(
+      "mousemove",
+      (e) => {
+        if (pointerLock) {
+          this.player.yawObject.rotation.y -= e.movementX * 0.002;
+          this.player.pitchObject.rotation.x -= e.movementY * 0.002;
+          this.player.pitchObject.rotation.x = Math.max(
+            -Math.PI / 2,
+            Math.min(Math.PI / 8, this.player.pitchObject.rotation.x)
+          );
+        }
+      },
+      false
+    );
+
+    e.listener(
+      "pointerlockchange",
+      () => {
+        if (!pointerLock) {
+          pointerLock = true;
+        } else if (pointerLock) {
+          document.exitPointerLock();
+          pointerLock = false;
+        }
+      },
+      false
+    );
+
+    e.listener(
+      "click",
+      () => {
+        if (!pointerLock) {
+          element.requestPointerLock();
+        }
+      },
+      false
+    );
+  }
   playground() {
-    player.update();
+    for (let i = 0; i < this.boxes.length; i++) {
+      this.boxes[i].update();
+    }
+
+    this.player.update();
 
     //esc key to leave game
     if (keys[27] && pointerLock) {
@@ -302,48 +379,6 @@ class Program {
 
 (function () {
   let program = new Program();
-
-  let e = new Event(document);
-  e.keyPress(keys);
-  e.getMouse(mouse);
-
-  e.listener(
-    "mousemove",
-    (e) => {
-      if (pointerLock) {
-        player.yawObject.rotation.y -= e.movementX * 0.002;
-        player.pitchObject.rotation.x -= e.movementY * 0.002;
-        player.pitchObject.rotation.x = Math.max(
-          -Math.PI / 2,
-          Math.min(Math.PI / 8, player.pitchObject.rotation.x)
-        );
-      }
-    },
-    false
-  );
-
-  e.listener(
-    "pointerlockchange",
-    () => {
-      if (!pointerLock) {
-        pointerLock = true;
-      } else if (pointerLock) {
-        document.exitPointerLock();
-        pointerLock = false;
-      }
-    },
-    false
-  );
-
-  e.listener(
-    "click",
-    () => {
-      if (!pointerLock) {
-        element.requestPointerLock();
-      }
-    },
-    false
-  );
 
   program.setup();
   program.update();
