@@ -12,10 +12,51 @@
     </head>
 
     <body>
+        <!--Personal canvas library-->
+        <script src="https://cdn.jsdelivr.net/gh/astro-develops/canvas-functions@main/main.js"></script>
+        <script src='https://cdn.jsdelivr.net/gh/astro-develops/canvas-functions@main/addons.js'></script>
+
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/gh/astro-develops/canvas-functions@main/addons.js"></script>
-
+        <!--Shaders-->
+        <script type>
+        //vertex shader
+            const vs = `    
+                attribute vec3 in_Position;
+                varying vec2 fragCoord;
+                varying vec2 vUv; 
+                void main()
+                {
+                    vUv = uv;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0 );
+                    gl_Position = projectionMatrix * mvPosition;
+                    fragCoord = position.xy;
+                }`;
+            //fragment shader
+            const fs = `
+                uniform float iTime;
+                uniform sampler2D iChannel0;
+                uniform vec2 iMouse;
+                uniform vec2 iResolution;
+                varying vec2 vUv;
+                varying vec2 fragCoord;
+                        
+                const float cellSize = 3.0;
+                // colors
+                const vec4 col0 = vec4(0.2, 0.2, 0.2, 1.0);
+                const vec4 col1 = vec4(0.1, 0.1, 0.1, 1.0);
+                
+                void main() {
+                
+                	const float pairSize = cellSize * 2.0;
+                
+                    bool a = mod(fragCoord.x, pairSize) < cellSize;
+                    bool b = mod(fragCoord.y, pairSize) < cellSize;
+                    
+                	gl_FragColor = ((a && !b) || (!a && b)) ? col0 : col1;
+                
+                }`;
+        </script>
         <script src="./index.js" type="module"></script>
     </body>
 </html>
