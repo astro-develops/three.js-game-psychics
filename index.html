@@ -8,14 +8,21 @@
                 margin: 0;
                 padding: 0;
             }
-        </style>
+            canvas {
+                position: fixed;
+            }
+</style>
     </head>
 
     <body>
+        <div id="container"></div>
+        <canvas id="canvas" width="600px"></canvas>
+        
         <!--Personal canvas library-->
         <script src="https://cdn.jsdelivr.net/gh/astro-develops/canvas-functions@main/main.js"></script>
         <script src='https://cdn.jsdelivr.net/gh/astro-develops/canvas-functions@main/addons.js'></script>
 
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
         <!--Shaders-->

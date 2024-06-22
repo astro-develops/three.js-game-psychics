@@ -6,21 +6,17 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-//mouse lock
-let isSupport = "pointerLockElement" in document;
-let element = renderer.domElement;
-if (isSupport) {
-  element.requestPointerLock = element.requestPointerLock;
-  element.exitPointerLock = document.exitPointerLock;
-}
+// let stats = new Stats();
+// stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+// document.body.appendChild( stats.dom );
 
-document.body.appendChild(element);
-document.body.appendChild(renderer.domElement);
-
-//create cannon.js world
+//Set up the canvas API with my canvas functions
+setCanvas(canvas, ctx);
+//cannon.js
 const world = new CANNON.World();
 
 const clock = new THREE.Clock();
@@ -28,8 +24,8 @@ const tuniform = {
   iResolution: { value: new THREE.Vector2() },
   iTime: { type: "f", value: 0.1 },
 };
-tuniform.iResolution.value.set(window.innerWidth, window.innerHeight);
 
+let element = renderer.domElement;
 let pointerLock = false;
 let contactNormal = new CANNON.Vec3();
 let upAxis = new CANNON.Vec3(0, 1, 0);
@@ -37,7 +33,25 @@ let bodyTemp, canJump;
 let keys = [];
 let mouse = {};
 
-/**********************/
+const mouseLock = () => {
+  let isSupport = "pointerLockElement" in document;
+
+  if (isSupport) {
+    element.requestPointerLock = element.requestPointerLock;
+    element.exitPointerLock = document.exitPointerLock;
+  }
+};
+const bg = () => {
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(
+    "https://t4.ftcdn.net/jpg/04/38/75/23/360_F_438752353_ll05wHi4U3PAumqkxdZ8D907DfzH3EPe.jpg",
+    () => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      scene.background = texture;
+    }
+  );
+};
 
 let toRad = (ang) => (ang * Math.PI) / 180;
 //cannon.js rotation
@@ -70,15 +84,15 @@ let rotateCannon = (obj, obj_pos, ang) => {
 /**********************/
 
 class Box {
-  constructor(x, y, z, w, h, l, r, m) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
-    this.h = h;
-    this.l = l;
-    this.r = r;
-    this.m = m;
+  constructor(x, y, z, m, w, h, l, r) {
+    this.x = x || 0;
+    this.y = y || 0;
+    this.z = z || 0;
+    this.w = w || 10;
+    this.h = h || 10;
+    this.l = l || 10;
+    this.r = r || [0, 0, 0];
+    this.m = m || 1;
 
     this.cannonBody = new CANNON.Body({
       mass: this.m,
@@ -92,11 +106,18 @@ class Box {
     rotateCannon(this.cannonBody, "z", this.r[2]);
     world.addBody(this.cannonBody);
 
+    this.textures = [
+      "https://preview.redd.it/63oyebjywf951.jpg?auto=webp&s=d47b6b4a596761ee52d8c8806da32f1ca91c9965",
+      "https://art.pixilart.com/8958a2c64b6def8.png",
+    ];
+
     this.loader = new THREE.TextureLoader();
     this.threejsGeo = new THREE.BoxGeometry(this.w, this.h, this.l);
     this.material = new THREE.MeshPhongMaterial({
       //color: this.color,
-      map: this.loader.load("https://art.pixilart.com/8958a2c64b6def8.png"),
+      map: this.loader.load(
+        this.textures[Math.floor(Math.random() * this.textures.length)]
+      ),
 
       depthWrite: true,
     });
@@ -134,7 +155,7 @@ class Box {
   //       map: this.loader.load("https://art.pixilart.com/8958a2c64b6def8.png"),
 
   //       depthWrite: true,
-  //     });  
+  //     });
   //     this.threejsMesh = new THREE.Mesh(this.threejsGeo, this.material);
   //     scene.add(this.threejsMesh)
 
@@ -259,6 +280,26 @@ class Player {
   }
 }
 
+// const tick = () => {
+//   // stats.begin();
+
+//   const elapsedTime = clock.getElapsedTime();
+
+//   // Update controls
+//   controls.update();
+
+//   // Update time
+//   waterMaterial.uniforms.uTime.value = elapsedTime;
+//   // Render
+//   renderer.render(scene, camera);
+
+//   // stats.end();
+//   // Call tick again on the next frame
+//   window.requestAnimationFrame(tick);
+// };
+
+// tick();
+
 class Program {
   constructor() {
     this.boxes = [];
@@ -301,11 +342,23 @@ class Program {
     this.player.pitchObject.add(camera);
 
     //test collisions
-    this.boxes.push(new Box(0, 30, -10, 8, 8, 8, [90, 40, 0], 0.4));
-    this.boxes.push(new Box(0, 40, -10, 8, 8, 2, [50, 10, 0], 0.4));
+
+    for (let i = 0; i < 100; i++) {
+      this.boxes.push(
+        new Box(
+          25 - Math.random() * 50,
+          25 - Math.random() * 50,
+          50 - Math.random() * 100,
+          Math.random(),
+          1 + Math.random() * 10,
+          Math.random() * 10,
+          Math.random() * 10,
+          [Math.random() * 90, Math.random() * 90, Math.random() * 90]
+        )
+      );
+    }
 
     //floating block
-    this.boxes.push(new Box(15, 5, -10, 8, 8, 1, [90, 0, 0], 0));
     this.listeners();
   }
   listeners() {
@@ -350,6 +403,14 @@ class Program {
       },
       false
     );
+    mouseLock();
+    bg();
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(element);
+    document.body.appendChild(renderer.domElement);
+
+    tuniform.iResolution.value.set(window.innerWidth, window.innerHeight);
   }
   playground() {
     for (let i = 0; i < this.boxes.length; i++) {
@@ -367,9 +428,12 @@ class Program {
     tuniform.iTime.value += clock.getDelta();
 
     renderer.render(scene, camera);
+    //stats.showPanel(0);
   }
   update() {
+    //stats.begin();
     this.playground();
+    //stats.end();
 
     raf(() => {
       this.update();
