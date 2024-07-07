@@ -1,3 +1,5 @@
+alert("WASD & space to move. cursor to look around. Esc to leave")
+
 //Create three.js scene, camera, and renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -92,7 +94,7 @@ class Box {
     this.h = h || 10;
     this.l = l || 10;
     this.r = r || [0, 0, 0];
-    this.m = m || 1;
+    this.m = m || 0;
 
     this.cannonBody = new CANNON.Body({
       mass: this.m,
@@ -109,6 +111,7 @@ class Box {
     this.textures = [
       "https://preview.redd.it/63oyebjywf951.jpg?auto=webp&s=d47b6b4a596761ee52d8c8806da32f1ca91c9965",
       "https://art.pixilart.com/8958a2c64b6def8.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Square_tiles_diff_8k_%28Charlotte_Baglioni_via_Poly_Haven%29.png/640px-Square_tiles_diff_8k_%28Charlotte_Baglioni_via_Poly_Haven%29.png",
     ];
 
     this.loader = new THREE.TextureLoader();
@@ -188,7 +191,7 @@ class Player {
     scene.add(this.yawObject);
 
     //hitbox
-    this.shape = new CANNON.Sphere(1);
+    this.shape = new CANNON.Sphere(2);
     this.body = new CANNON.Body({ shape: this.shape, mass: 2 });
     world.addBody(this.body);
 
@@ -300,17 +303,41 @@ class Player {
 
 // tick();
 
+const _map = [
+  "#   ################",
+  "#------------------#",
+  "##-#-#-#-#-#-#-###-#",
+  "#--#-#-#---#-#-#-#-#",
+  "#-##-#--#--#-#-#---#",
+  "#--#--#-#-##-#-##--#",
+  "##-#--###----#-----#",
+  "#--##-####---#####-#",
+  "###-------##-----#-#",
+  "#----------#######-#",
+  "###-######-#-------#",
+  "#-#-#----#-#########",
+  "#-#-#-#--#---------#",
+  "#-#-#-#-#####-######",
+  "#-----#---#--------#",
+  "#######---########-#",
+  "#----#----#--#---#-#",
+  "#--#-#-#--#--#-#-#-#",
+  "#--#---#--#----#---#",
+  "#-##################",
+];
+
 class Program {
   constructor() {
     this.boxes = [];
     this.player = new Player();
+    this.time = 50;
 
     this.groundBody = new CANNON.Body({
       type: CANNON.Body.STATIC,
       shape: new CANNON.Plane(),
     });
 
-    this.PlaneGeometry = new THREE.PlaneGeometry(1000, 1000);
+    this.PlaneGeometry = new THREE.PlaneGeometry(300, 300);
     this.planeMaterial = new THREE.ShaderMaterial({
       uniforms: tuniform,
       vertexShader: vs,
@@ -322,13 +349,38 @@ class Program {
   }
   setup() {
     scene.background = new THREE.Color("rgb(25,25,25)");
-    scene.fog = new THREE.Fog(0x222222, 0, 40);
-    camera.position.set(0, 1, 5);
+    scene.fog = new THREE.Fog(0x222222, 0, 60);
+    camera.position.set(0, 10, 20);
     world.gravity.set(0, -20, 0);
 
     //lighting
     this.directionalLight.position.set(0, 32, 64);
     scene.add(this.directionalLight);
+
+    const loader = new THREE.FontLoader();
+    loader.load(
+      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+      function (font) {
+        const geometry = new THREE.TextGeometry("Playground", {
+          font: font,
+          size: 2,
+          height: 5,
+          curveSegments: 10,
+        });
+
+        // Create materials with different colors for the faces
+        const materials = [new THREE.MeshPhongMaterial({ color: "white" })];
+
+        const mesh = new THREE.Mesh(geometry, materials);
+        mesh.position.set(-20, 30, -50);
+        scene.add(mesh);
+      }
+    );
+
+    // Add lighting
+    const light = new THREE.DirectionalLight("white", 4);
+    light.position.set(0, 0, 0).normalize();
+    scene.add(light);
 
     // ground
     this.groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
@@ -338,27 +390,49 @@ class Program {
     this.planeMesh.quaternion.copy(this.groundBody.quaternion);
     scene.add(this.planeMesh);
 
-    this.player.body.position.set(0, 10, 0);
+    this.player.body.position.set(10, 5, -10);
     this.player.pitchObject.add(camera);
 
     //test collisions
+    for (let i = 0; i < _map.length; i++) {
+      for (let j = 0; j < _map[i].length; j++) {
+        switch (_map[i][j]) {
+          case "#":
+            this.boxes.push(new Box(i * 5, 3, -j * 5, 0, 5, 5, 5));
+            break;
 
-    for (let i = 0; i < 100; i++) {
+          default:
+            break;
+        }
+      }
+    }
+
+    // const gltfLoader = new GLTFLoader();
+    // const url = './tree.glb';
+    // gltfLoader.load(url, (gltf) => {
+    //   const root = gltf.scene;
+    //   scene.add(root);
+
+    // });
+
+    for (let i = 0; i <= 50; i++) {
       this.boxes.push(
         new Box(
-          25 - Math.random() * 50,
-          25 - Math.random() * 50,
-          50 - Math.random() * 100,
-          Math.random(),
-          1 + Math.random() * 10,
+          -60,
+          30 + i * 5,
+          -50,
+          2,
           Math.random() * 10,
           Math.random() * 10,
-          [Math.random() * 90, Math.random() * 90, Math.random() * 90]
+          Math.random() * 10
         )
       );
     }
 
-    //floating block
+    const light2 = new THREE.PointLight("white", 2);
+    light2.position.set(-60, 10, -50);
+    scene.add(light2);
+
     this.listeners();
   }
   listeners() {
