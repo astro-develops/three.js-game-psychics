@@ -361,7 +361,7 @@ class Program {
     loader.load(
       "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
       function (font) {
-        const geometry = new THREE.TextGeometry("Playground", {
+        const geometry = new THREE.TextGeometry("test", {
           font: font,
           size: 2,
           height: 5,
